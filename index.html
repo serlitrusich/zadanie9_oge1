@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр: Типы подчинительной связи</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg1: #6a5cff;
+    --bg2: #a855f7;
+    --bg3: #ec4899;
+    --accent: #6366f1;
+    --ok: #10b981;
+    --bad: #ef4444;
+    --ink: #1f2937;
+    --muted: #6b7280;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+    background-size: 200% 200%;
+    animation: bgShift 18s ease infinite;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  @keyframes bgShift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .screen { display: none; width: 100%; max-width: 660px; }
+  .screen.active { display: block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* ===== START ===== */
+  .start-card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 36px 28px 32px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.28);
+    text-align: center;
+  }
+  .logo {
+    font-size: 64px;
+    line-height: 1;
+    margin-bottom: 12px;
+    animation: bounce 2.4s ease-in-out infinite;
+    display: inline-block;
+  }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-10px) rotate(4deg); }
+  }
+  .start-card h1 {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--bg1), var(--bg3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+    letter-spacing: -.4px;
+  }
+  .start-card .sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 26px;
+  }
+  .modes { display: grid; gap: 12px; }
+  .mode-btn {
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px 20px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: inherit;
+    transition: transform .15s ease, border-color .2s, box-shadow .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-btn:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 10px 24px rgba(99,102,241,.22); }
+  .mode-btn:active { transform: translateY(-1px) scale(.99); }
+  .mode-btn .ico { font-size: 30px; flex-shrink: 0; }
+  .mode-btn .txt { display: flex; flex-direction: column; gap: 2px; }
+  .mode-btn .t1 { font-weight: 800; font-size: 17px; color: var(--ink); }
+  .mode-btn .t2 { font-size: 13px; color: var(--muted); }
+  .mode-btn .count {
+    margin-left: auto; font-size: 12px; font-weight: 700;
+    background: #eef2ff; color: var(--accent);
+    padding: 5px 10px; border-radius: 20px;
+  }
+
+  /* ===== HUD ===== */
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    color: #fff;
+  }
+  .hud .progress {
+    flex: 1;
+    height: 10px;
+    background: rgba(255,255,255,.28);
+    border-radius: 10px;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+  }
+  .hud .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #fde68a, #fbbf24);
+    border-radius: 10px;
+    transition: width .35s cubic-bezier(.4,0,.2,1);
+  }
+  .hud .counter {
+    font-weight: 800;
+    font-size: 14px;
+    min-width: 56px;
+    text-align: right;
+    text-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  .stats { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stat {
+    background: rgba(255,255,255,.95);
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform .2s;
+  }
+  .stat.pop { animation: pop .4s ease; }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .stat.score { color: #b45309; }
+  .stat.streak { color: #dc2626; }
+  .stat.streak.hidden { display: none; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: #fff;
+    border-radius: 26px;
+    padding: 28px 26px 24px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.3);
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .card.shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-9px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .badge {
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+  }
+  .badge.p1 { background: #eef2ff; color: #4338ca; }
+  .badge.p2 { background: #fef3c7; color: #b45309; }
+
+  .q-label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .q-text {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -.5px;
+    margin-bottom: 6px;
+    color: var(--ink);
+    word-break: break-word;
+  }
+  .q-text .accent { color: var(--accent); }
+  .q-hint {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+  .q-hint b { color: var(--accent); }
+
+  /* Part 1 buttons */
+  .options { display: grid; gap: 10px; margin-top: 8px; }
+  .opt-btn {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 2px solid #e5e7eb;
+    background: #f9fafb;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all .18s ease;
+  }
+  .opt-btn .key {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    background: #e5e7eb;
+    font-size: 13px;
+    font-weight: 800;
+    color: #4b5563;
+    flex-shrink: 0;
+  }
+  .opt-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: #eef2ff;
+    transform: translateX(4px);
+  }
+  .opt-btn:disabled { cursor: default; }
+  .opt-btn.correct { border-color: var(--ok); background: #d1fae5; color: #065f46; }
+  .opt-btn.correct .key { background: var(--ok); color: #fff; }
+  .opt-btn.wrong { border-color: var(--bad); background: #fee2e2; color: #991b1b; }
+  .opt-btn.wrong .key { background: var(--bad); color: #fff; }
+  .opt-btn.dim { opacity: .45; }
+
+  /* Part 2 input */
+  .answer-row { display: flex; gap: 10px; margin-top: 8px; }
+  .answer-input {
+    flex: 1;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 15px 16px;
+    border-radius: 14px;
+    border: 2px solid #e5e7eb;
+    background: #f9fafb;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .2s, background .2s;
+  }
+  .answer-input:focus { border-color: var(--accent); background: #fff; }
+  .answer-input:disabled { opacity: .7; }
+  .answer-input.correct { border-color: var(--ok); background: #d1fae5; color: #065f46; }
+  .answer-input.wrong { border-color: var(--bad); background: #fee2e2; color: #991b1b; }
+  .check-btn {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 0 22px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--bg1), var(--bg3));
+    color: #fff;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .2s;
+    box-shadow: 0 8px 20px rgba(168,85,247,.35);
+  }
+  .check-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(168,85,247,.45); }
+  .check-btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+
+  /* Feedback */
+  .feedback {
+    margin-top: 18px;
+    border-radius: 16px;
+    padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all .3s ease;
+  }
+  .feedback.show { padding: 16px; max-height: 400px; opacity: 1; }
+  .feedback.ok { background: #ecfdf5; border-left: 5px solid var(--ok); }
+  .feedback.bad { background: #fef2f2; border-left: 5px solid var(--bad); }
+  .fb-title { font-weight: 800; font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .feedback.ok .fb-title { color: #065f46; }
+  .feedback.bad .fb-title { color: #991b1b; }
+  .fb-body { font-size: 15px; line-height: 1.5; color: #374151; }
+  .fb-body b { color: var(--ink); }
+  .fb-explain { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+  .next-btn {
+    margin-top: 18px;
+    align-self: stretch;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 800;
+    padding: 15px;
+    border-radius: 16px;
+    border: none;
+    background: linear-gradient(135deg, var(--bg1), var(--bg3));
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 10px 26px rgba(168,85,247,.35);
+    transition: transform .15s;
+    display: none;
+  }
+  .next-btn.show { display: block; animation: fadeIn .3s ease; }
+  .next-btn:hover { transform: translateY(-2px); }
+  .next-btn:active { transform: translateY(0); }
+
+  /* floating +points */
+  .float-pts {
+    position: absolute;
+    right: 26px;
+    top: 20px;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--ok);
+    pointer-events: none;
+    animation: floatUp .9s ease forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(6px) scale(.8); }
+    30% { opacity: 1; transform: translateY(-4px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(1); }
+  }
+
+  /* confetti */
+  .confetti {
+    position: fixed;
+    width: 10px; height: 10px;
+    pointer-events: none;
+    z-index: 999;
+    border-radius: 2px;
+  }
+
+  /* ===== RESULT ===== */
+  .result-card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 34px 26px 26px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.3);
+    text-align: center;
+  }
+  .result-emoji { font-size: 72px; line-height: 1; margin-bottom: 8px; animation: bounce 2s ease-in-out infinite; }
+  .result-title { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+  .result-sub { color: var(--muted); font-size: 15px; margin-bottom: 22px; }
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .rg {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 14px 8px;
+  }
+  .rg .v { font-size: 24px; font-weight: 900; color: var(--accent); }
+  .rg .k { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+  .mistakes {
+    text-align: left;
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding-right: 4px;
+  }
+  .mistakes h3 {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 800;
+  }
+  .mistake-item {
+    background: #fef2f2;
+    border-left: 4px solid var(--bad);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .mistake-item .mq { font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+  .mistake-item .ma { color: #991b1b; }
+  .mistake-item .mc { color: #065f46; font-weight: 700; }
+
+  .result-actions { display: grid; gap: 10px; }
+  .act-btn {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 15px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: transform .15s;
+  }
+  .act-btn.primary {
+    background: linear-gradient(135deg, var(--bg1), var(--bg3));
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(168,85,247,.35);
+  }
+  .act-btn.secondary {
+    background: #f3f4f6;
+    color: var(--ink);
+  }
+  .act-btn:hover { transform: translateY(-2px); }
+
+  @media (max-width: 480px) {
+    .q-text { font-size: 24px; }
+    .card { padding: 22px 18px 18px; border-radius: 22px; }
+    .start-card { padding: 28px 20px 24px; }
+    .result-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .rg .v { font-size: 20px; }
+    .answer-row { flex-direction: column; }
+    .check-btn { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ START ============ -->
+<div class="screen active" id="screen-start">
+  <div class="start-card">
+    <div class="logo">🎯</div>
+    <h1>Типы подчинительной связи</h1>
+    <p class="sub">Тренажёр для подготовки к заданию №9 (ОГЭ)</p>
+    <div class="modes">
+      <button class="mode-btn" data-mode="1">
+        <span class="ico">🔗</span>
+        <span class="txt">
+          <span class="t1">Часть 1. Определить тип</span>
+          <span class="t2">Согласование · Управление · Примыкание</span>
+        </span>
+        <span class="count">30</span>
+      </button>
+      <button class="mode-btn" data-mode="2">
+        <span class="ico">🔄</span>
+        <span class="txt">
+          <span class="t1">Часть 2. Заменить</span>
+          <span class="t2">Синонимичное словосочетание с другим типом связи</span>
+        </span>
+        <span class="count">30</span>
+      </button>
+      <button class="mode-btn" data-mode="mix">
+        <span class="ico">🎲</span>
+        <span class="txt">
+          <span class="t1">Микс — всё вместе</span>
+          <span class="t2">Случайный порядок из обеих частей</span>
+        </span>
+        <span class="count">60</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="screen-game">
+  <div class="hud">
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="counter" id="counter">1 / 30</div>
+  </div>
+  <div class="stats">
+    <div class="stat score" id="statScore">⭐ <span id="scoreVal">0</span></div>
+    <div class="stat streak hidden" id="statStreak">🔥 x<span id="streakVal">0</span></div>
+  </div>
+  <div class="card" id="card">
+    <div class="badge" id="badge">Часть 1</div>
+    <div class="q-label" id="qLabel">Определи тип подчинительной связи</div>
+    <div class="q-text" id="qText"></div>
+    <div class="q-hint" id="qHint"></div>
+    <div id="taskArea"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn">Дальше →</button>
+  </div>
+</div>
+
+<!-- ============ RESULT ============ -->
+<div class="screen" id="screen-result">
+  <div class="result-card">
+    <div class="result-emoji" id="resEmoji">🏆</div>
+    <div class="result-title" id="resTitle">Отлично!</div>
+    <div class="result-sub" id="resSub"></div>
+    <div class="result-grid">
+      <div class="rg"><div class="v" id="resCorrect">0</div><div class="k">Верно</div></div>
+      <div class="rg"><div class="v" id="resWrong">0</div><div class="k">Ошибки</div></div>
+      <div class="rg"><div class="v" id="resStreak">0</div><div class="k">Макс. серия</div></div>
+    </div>
+    <div class="mistakes" id="mistakesBox"></div>
+    <div class="result-actions">
+      <button class="act-btn primary" id="retryBtn">Пройти снова</button>
+      <button class="act-btn secondary" id="menuBtn">В меню</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= ДАННЫЕ ================= */
+const PART1_RAW = [
+  ["Бесшумный полёт", "Согласование"],
+  ["Бежать быстро", "Примыкание"],
+  ["Смотреть на горизонт", "Управление"],
+  ["Желание учиться", "Примыкание"],
+  ["Хрустальная ваза", "Согласование"],
+  ["Читать повесть", "Управление"],
+  ["Очень звонко", "Примыкание"],
+  ["Горная вершина", "Согласование"],
+  ["Гордость за сына", "Управление"],
+  ["Разговаривать улыбаясь", "Примыкание"],
+  ["Второй этаж", "Согласование"],
+  ["Подарок матери", "Управление"],
+  ["Яйцо всмятку", "Примыкание"],
+  ["Наш учитель", "Согласование"],
+  ["Построить мост", "Управление"],
+  ["Поступить по-товарищески", "Примыкание"],
+  ["Осенний дождь", "Согласование"],
+  ["Отказаться от помощи", "Управление"],
+  ["Привычка спорить", "Примыкание"],
+  ["Летящая птица", "Согласование"],
+  ["Любовь к чтению", "Управление"],
+  ["Взгляд исподлобья", "Примыкание"],
+  ["Стеклянная дверь", "Согласование"],
+  ["Встретиться с другом", "Управление"],
+  ["Ехать верхом", "Примыкание"],
+  ["Мой портфель", "Согласование"],
+  ["Написать письмо", "Управление"],
+  ["Юбка клёш", "Примыкание"],
+  ["Серебряный браслет", "Согласование"],
+  ["Устать с дороги", "Управление"]
+];
+
+// [исходное, откуда, куда, [допустимые ответы]]
+const PART2_RAW = [
+  ["Глиняный кувшин", "согласование", "управление", ["кувшин из глины"]],
+  ["Мамин платок", "согласование", "управление", ["платок мамы", "платок матери"]],
+  ["Школьный двор", "согласование", "управление", ["двор школы"]],
+  ["Песчаный берег", "согласование", "управление", ["берег из песка", "берег песка", "берег реки"]],
+  ["Чугунная ограда", "согласование", "управление", ["ограда из чугуна"]],
+  ["Вишнёвое варенье", "согласование", "управление", ["варенье из вишни"]],
+  ["Серебряная ложка", "согласование", "управление", ["ложка из серебра"]],
+  ["Заячьи следы", "согласование", "управление", ["следы зайца"]],
+  ["Бархатное платье", "согласование", "управление", ["платье из бархата"]],
+  ["Сосновый бор", "согласование", "управление", ["бор из сосен"]],
+  ["Уверенно отвечал", "примыкание", "управление", ["отвечал с уверенностью"]],
+  ["Жадно пил", "примыкание", "управление", ["пил с жадностью"]],
+  ["Грустно посмотрел", "примыкание", "управление", ["посмотрел с грустью"]],
+  ["Храбро сражался", "примыкание", "управление", ["сражался с храбростью"]],
+  ["Смущённо улыбнулся", "примыкание", "управление", ["улыбнулся со смущением"]],
+  ["Беззвучно плакала", "примыкание", "управление", ["плакала без звука"]],
+  ["Страстно желал", "примыкание", "управление", ["желал со страстью"]],
+  ["Восторженно кричал", "примыкание", "управление", ["кричал с восторгом"]],
+  ["Ласково гладил", "примыкание", "управление", ["гладил с лаской"]],
+  ["Бережно хранить", "примыкание", "управление", ["хранить с бережностью"]],
+  ["Лодка из дерева", "управление", "согласование", ["деревянная лодка"]],
+  ["Ваза из хрусталя", "управление", "согласование", ["хрустальная ваза"]],
+  ["Тишина ночи", "управление", "согласование", ["ночная тишина"]],
+  ["Пиджак отца", "управление", "согласование", ["отцовский пиджак", "отцов пиджак"]],
+  ["Суп из рыбы", "управление", "согласование", ["рыбный суп"]],
+  ["Сок из яблок", "управление", "согласование", ["яблочный сок"]],
+  ["Говорить с восторгом", "управление", "примыкание", ["восторженно говорить"]],
+  ["Слушать с вниманием", "управление", "примыкание", ["внимательно слушать"]],
+  ["Защищать с упорством", "управление", "примыкание", ["упорно защищать"]],
+  ["Смотреть с грустью", "управление", "примыкание", ["грустно смотреть"]]
+];
+
+const PART1 = PART1_RAW.map(([q, a]) => ({ type: 1, q, a }));
+const PART2 = PART2_RAW.map(([q, from, to, answers]) => ({ type: 2, q, from, to, answers }));
+
+/* ================= УТИЛИТЫ ================= */
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function normalize(s) {
+  return s.toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[.,!?;:"'«»()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ================= ЗВУК ================= */
+let audioCtx = null;
+function beep(freq, dur, type = 'sine', vol = 0.08) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+function sndOk() { beep(660, .09, 'sine'); setTimeout(() => beep(990, .12, 'sine'), 70); }
+function sndBad() { beep(220, .18, 'sawtooth', .06); }
+
+/* ================= СОСТОЯНИЕ ================= */
+const state = {
+  mode: null,
+  queue: [],
+  index: 0,
+  correct: 0,
+  streak: 0,
+  maxStreak: 0,
+  mistakes: [],
+  answered: false
+};
+
+/* ================= ЭКРАНЫ ================= */
+const screens = {
+  start: document.getElementById('screen-start'),
+  game: document.getElementById('screen-game'),
+  result: document.getElementById('screen-result')
+};
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+/* ================= ЗАПУСК ================= */
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => startGame(btn.dataset.mode));
+});
+
+function startGame(mode) {
+  let pool;
+  if (mode === '1') pool = PART1.slice();
+  else if (mode === '2') pool = PART2.slice();
+  else pool = PART1.concat(PART2);
+
+  state.mode = mode;
+  state.queue = shuffle(pool);
+  state.index = 0;
+  state.correct = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
+  state.mistakes = [];
+  state.answered = false;
+
+  document.getElementById('scoreVal').textContent = '0';
+  document.getElementById('streakVal').textContent = '0';
+  document.getElementById('statStreak').classList.add('hidden');
+
+  showScreen('game');
+  renderTask();
+}
+
+/* ================= РЕНДЕР ЗАДАНИЯ ================= */
+const el = {
+  badge: document.getElementById('badge'),
+  qLabel: document.getElementById('qLabel'),
+  qText: document.getElementById('qText'),
+  qHint: document.getElementById('qHint'),
+  taskArea: document.getElementById('taskArea'),
+  feedback: document.getElementById('feedback'),
+  nextBtn: document.getElementById('nextBtn'),
+  card: document.getElementById('card'),
+  progressFill: document.getElementById('progressFill'),
+  counter: document.getElementById('counter')
+};
+
+function renderTask() {
+  const item = state.queue[state.index];
+  state.answered = false;
+
+  // HUD
+  const total = state.queue.length;
+  el.progressFill.style.width = ((state.index) / total * 100) + '%';
+  el.counter.textContent = (state.index + 1) + ' / ' + total;
+
+  // сброс
+  el.card.classList.remove('shake');
+  el.feedback.className = 'feedback';
+  el.feedback.innerHTML = '';
+  el.nextBtn.classList.remove('show');
+  el.taskArea.innerHTML = '';
+  el.qText.innerHTML = '';
+  el.qHint.innerHTML = '';
+
+  if (item.type === 1) {
+    el.badge.className = 'badge p1';
+    el.badge.textContent = 'Часть 1 · тип связи';
+    el.qLabel.textContent = 'Определи тип подчинительной связи';
+    el.qText.textContent = item.q;
+    el.qHint.innerHTML = 'Выбери один из трёх вариантов';
+    renderPart1(item);
+  } else {
+    el.badge.className = 'badge p2';
+    el.badge.textContent = 'Часть 2 · замена';
+    el.qLabel.textContent = 'Замени словосочетание синонимичным';
+    el.qText.textContent = item.q;
+    el.qHint.innerHTML = 'Сделай тип связи: <b>' + item.to + '</b>. Главное слово оставь тем же.';
+    renderPart2(item);
+  }
+}
+
+/* ---------- Часть 1 ---------- */
+const P1_OPTIONS = ['Согласование', 'Управление', 'Примыкание'];
+function renderPart1(item) {
+  const wrap = document.createElement('div');
+  wrap.className = 'options';
+  P1_OPTIONS.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.innerHTML = '<span class="key">' + (i + 1) + '</span><span>' + opt + '</span>';
+    b.addEventListener('click', () => answerPart1(opt, b));
+    wrap.appendChild(b);
+  });
+  el.taskArea.appendChild(wrap);
+}
+
+function answerPart1(choice, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  const item = state.queue[state.index];
+  const isCorrect = choice === item.a;
+
+  const buttons = el.taskArea.querySelectorAll('.opt-btn');
+  buttons.forEach(b => {
+    b.disabled = true;
+    const label = b.querySelector('span:last-child').textContent;
+    if (label === item.a) b.classList.add('correct');
+    else if (b === btn && !isCorrect) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+
+  finishAnswer(isCorrect, choice, item);
+}
+
+/* ---------- Часть 2 ---------- */
+function renderPart2(item) {
+  const row = document.createElement('div');
+  row.className = 'answer-row';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'answer-input';
+  input.placeholder = 'Впиши словосочетание…';
+  input.autocomplete = 'off';
+  input.autocapitalize = 'off';
+  input.spellcheck = false;
+
+  const btn = document.createElement('button');
+  btn.className = 'check-btn';
+  btn.textContent = 'Проверить';
+
+  row.appendChild(input);
+  row.appendChild(btn);
+  el.taskArea.appendChild(row);
+
+  setTimeout(() => input.focus(), 60);
+
+  const submit = () => {
+    if (state.answered) return;
+    const val = input.value.trim();
+    if (!val) { input.focus(); return; }
+    state.answered = true;
+    const isCorrect = item.answers.some(a => normalize(a) === normalize(val));
+    input.disabled = true;
+    btn.disabled = true;
+    input.classList.add(isCorrect ? 'correct' : 'wrong');
+    finishAnswer(isCorrect, val, item);
+  };
+
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+/* ---------- Общая обработка ответа ---------- */
+function finishAnswer(isCorrect, userAnswer, item) {
+  const fb = el.feedback;
+
+  if (isCorrect) {
+    state.correct++;
+    state.streak++;
+    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+
+    // очки: базовые 10 + бонус за серию
+    const pts = 10 + Math.min(state.streak - 1, 5) * 2;
+    addScore(pts);
+
+    fb.className = 'feedback ok show';
+    fb.innerHTML =
+      '<div class="fb-title">✅ Верно! <span style="font-size:13px;color:#059669;">+' + pts + '</span></div>' +
+      '<div class="fb-body">' + buildCorrectText(item) + '</div>';
+
+    sndOk();
+    confettiBurst();
+    updateStreakUI();
+  } else {
+    state.streak = 0;
+    updateStreakUI();
+    state.mistakes.push({
+      q: item.q,
+      user: userAnswer,
+      right: buildRightAnswer(item),
+      type: item.type
+    });
+
+    fb.className = 'feedback bad show';
+    fb.innerHTML =
+      '<div class="fb-title">❌ Неверно</div>' +
+      '<div class="fb-body">' + buildWrongText(item, userAnswer) + '</div>';
+
+    el.card.classList.add('shake');
+    sndBad();
+  }
+
+  document.getElementById('scoreVal').textContent = state.correct;
+
+  // прогресс-бар
+  el.progressFill.style.width = ((state.index + 1) / state.queue.length * 100) + '%';
+
+  // кнопка далее
+  el.nextBtn.classList.add('show');
+  const last = state.index === state.queue.length - 1;
+  el.nextBtn.textContent = last ? 'Показать результат 🏁' : 'Дальше →';
+}
+
+function buildCorrectText(item) {
+  if (item.type === 1) {
+    return 'Тип связи — <b>' + item.a.toLowerCase() + '</b>.';
+  }
+  return 'Получилось: <b>' + item.answers[0] + '</b>. Тип связи — <b>' + item.to + '</b>.';
+}
+function buildWrongText(item, userAnswer) {
+  if (item.type === 1) {
+    return 'Ты выбрал: <b>' + userAnswer + '</b>.<br>Правильно: <b>' + item.a + '</b>.' +
+      '<div class="fb-explain">' + explainType(item.a) + '</div>';
+  }
+  return 'Ты написал: <b>' + userAnswer + '</b>.<br>Ожидаемый ответ: <b>' + item.answers[0] + '</b>.' +
+    '<div class="fb-explain">Нужен тип «' + item.to + '»: ' + explainType(item.to) + '</div>';
+}
+function buildRightAnswer(item) {
+  return item.type === 1 ? item.a : item.answers[0];
+}
+function explainType(t) {
+  const lc = t.toLowerCase();
+  if (lc === 'согласование') return 'зависимое слово меняется вместе с главным в роде, числе и падеже.';
+  if (lc === 'управление') return 'главное слово требует от зависимого определённого падежа (с предлогом или без).';
+  if (lc === 'примыкание') return 'зависимое неизменяемое слово (наречие, деепричастие, инфинитив и др.) связано только по смыслу.';
+  return '';
+}
+
+/* ---------- Очки / серия ---------- */
+function addScore(pts) {
+  const s = document.getElementById('statScore');
+  s.classList.remove('pop');
+  void s.offsetWidth;
+  s.classList.add('pop');
+
+  const f = document.createElement('div');
+  f.className = 'float-pts';
+  f.textContent = '+' + pts;
+  el.card.appendChild(f);
+  setTimeout(() => f.remove(), 900);
+}
+function updateStreakUI() {
+  const st = document.getElementById('statStreak');
+  document.getElementById('streakVal').textContent = state.streak;
+  if (state.streak >= 2) {
+    st.classList.remove('hidden');
+    st.classList.remove('pop');
+    void st.offsetWidth;
+    st.classList.add('pop');
+  } else {
+    st.classList.add('hidden');
+  }
+}
+
+/* ---------- Далее ---------- */
+el.nextBtn.addEventListener('click', () => {
+  if (state.index === state.queue.length - 1) {
+    showResult();
+  } else {
+    state.index++;
+    renderTask();
+  }
+});
+
+/* ---------- Клавиатура: 1/2/3 для Части 1 ---------- */
+document.addEventListener('keydown', e => {
+  if (!screens.game.classList.contains('active')) return;
+  const item = state.queue[state.index];
+  if (!item || item.type !== 1 || state.answered) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= 3) {
+    const btns = el.taskArea.querySelectorAll('.opt-btn');
+    if (btns[num - 1]) btns[num - 1].click();
+  }
+});
+
+/* ================= КОНФЕТТИ ================= */
+function confettiBurst() {
+  const colors = ['#fbbf24', '#f472b6', '#60a5fa', '#34d399', '#a78bfa', '#fb7185'];
+  const rect = el.card.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 3;
+  for (let i = 0; i < 22; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.left = cx + 'px';
+    c.style.top = cy + 'px';
+    if (Math.random() > .5) c.style.borderRadius = '50%';
+    document.body.appendChild(c);
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 80 + Math.random() * 160;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 60;
+    const rot = Math.random() * 720 - 360;
+    c.animate([
+      { transform: 'translate(0,0) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: 'translate(' + dx + 'px,' + (dy + 180) + 'px) rotate(' + rot + 'deg) scale(.4)', opacity: 0 }
+    ], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.4,1)' })
+      .onfinish = () => c.remove();
+  }
+}
+
+/* ================= РЕЗУЛЬТАТ ================= */
+function showResult() {
+  const total = state.queue.length;
+  const wrong = total - state.correct;
+  const pct = Math.round(state.correct / total * 100);
+
+  let emoji = '📚', title = 'Есть над чем поработать';
+  if (pct >= 90) { emoji = '🏆'; title = 'Превосходно!'; }
+  else if (pct >= 75) { emoji = '🎉'; title = 'Отличный результат!'; }
+  else if (pct >= 60) { emoji = '💪'; title = 'Хорошо, но можно лучше'; }
+  else if (pct >= 40) { emoji = '🤔'; title = 'Нужно повторить теорию'; }
+
+  document.getElementById('resEmoji').textContent = emoji;
+  document.getElementById('resTitle').textContent = title;
+  document.getElementById('resSub').textContent =
+    'Верных ответов: ' + state.correct + ' из ' + total + ' (' + pct + '%)';
+  document.getElementById('resCorrect').textContent = state.correct;
+  document.getElementById('resWrong').textContent = wrong;
+  document.getElementById('resStreak').textContent = state.maxStreak;
+
+  const box = document.getElementById('mistakesBox');
+  if (state.mistakes.length === 0) {
+    box.innerHTML = '<h3>Ошибок нет 🎯</h3>';
+  } else {
+    let html = '<h3>Разбор ошибок (' + state.mistakes.length + ')</h3>';
+    state.mistakes.forEach(m => {
+      html += '<div class="mistake-item">' +
+        '<div class="mq">' + m.q + '</div>' +
+        '<div class="ma">Твой ответ: ' + m.user + '</div>' +
+        '<div class="mc">Правильно: ' + m.right + '</div>' +
+        '</div>';
+    });
+    box.innerHTML = html;
+  }
+
+  showScreen('result');
+}
+
+document.getElementById('retryBtn').addEventListener('click', () => startGame(state.mode));
+document.getElementById('menuBtn').addEventListener('click', () => showScreen('start'));
+</script>
+</body>
+</html>
